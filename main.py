@@ -65,7 +65,6 @@ config = read_data('config', '')
 
 # 变量
 apihelper.proxy = {'http': config['proxy']}
-# noinspection SpellCheckingInspection
 bot = telebot.TeleBot(config['bot_token'], parse_mode='MARKDOWN')
 group_id = config['group_id']
 
@@ -98,7 +97,6 @@ def send_welcome(message_local):
     bot.reply_to(message_local, help_text)
 
 
-# noinspection PyUnusedLocal
 def empty_callback(*args):
     pass
 
