@@ -63,8 +63,8 @@ if not os.path.exists('config.json'):
 # 读取配置
 config = read_data('config', '')
 
-# 变量
-apihelper.proxy = {'http': config['proxy']}
+if config['proxy_enabled']:
+    apihelper.proxy = {'http': config['proxy']}
 bot = telebot.TeleBot(config['bot_token'], parse_mode='MARKDOWN')
 group_id = config['group_id']
 
