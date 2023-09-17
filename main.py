@@ -353,16 +353,31 @@ def if_all(message_local):
                 reply_str = '[' + content_type_zh[message_local.reply_to_message.content_type] + ']'
 
                 if message_local.reply_to_message.content_type == 'photo':
-                    file = bot.get_file(message_local.photo[-1].file_id)
-                    reply_str += ' (' + file.file_path + ')'
+                    if message_local.photo:
+                        file = bot.get_file(message_local.photo[-1].file_id)
+                        reply_str += ' (' + file.file_path + ')'
+                    else:
+                        reply_str += ' (无法获取)'
                 elif message_local.reply_to_message.content_type == 'video':
-                    reply_str += ' (' + message_local.reply_to_message.video.file_name + ')'
+                    if message_local.reply_to_message.video:
+                        reply_str += ' (' + message_local.reply_to_message.video.file_name + ')'
+                    else:
+                        reply_str += ' (无法获取)'
                 elif message_local.reply_to_message.content_type == 'audio':
-                    reply_str += ' (' + message_local.reply_to_message.audio.file_name + ')'
+                    if message_local.reply_to_message.audio:
+                        reply_str += ' (' + message_local.reply_to_message.audio.file_name + ')'
+                    else:
+                        reply_str += ' (无法获取)'
                 elif message_local.reply_to_message.content_type == 'document':
-                    reply_str += ' (' + message_local.reply_to_message.document.file_name + ')'
+                    if message_local.reply_to_message.document:
+                        reply_str += ' (' + message_local.reply_to_message.document.file_name + ')'
+                    else:
+                        reply_str += ' (无法获取)'
                 elif message_local.reply_to_message.content_type == 'sticker':
-                    reply_str += ' ' + message_local.reply_to_message.sticker.emoji
+                    if message_local.reply_to_message.sticker:
+                        reply_str += ' ' + message_local.reply_to_message.sticker.emoji
+                    else:
+                        reply_str += ' (无法获取)'
 
                 if message_local.reply_to_message.caption:
                     reply_str += ' ' + message_local.reply_to_message.caption
