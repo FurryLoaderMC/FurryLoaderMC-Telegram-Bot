@@ -9,7 +9,6 @@ from datetime import datetime
 from enum import Enum
 
 import minestat
-import requests
 import socketio
 import telebot
 from loguru import logger
@@ -55,6 +54,11 @@ def write_data(file_type, data):
 def tg_escape(text):
     return text.replace('_', '\\_').replace('*', '\\*').replace('[', '\\[').replace('`', '\\`')
 
+
+# 判断配置文件是否存在，若不存在则报错并停止运行
+if not os.path.exists('config.json'):
+    logger.error('config.json 不存在，请先创建 config.json')
+    exit(1)
 
 # 读取配置
 config = read_data('config', '')
