@@ -545,22 +545,32 @@ def get_tg_username_by_id(user_id):
             return None
     except Exception as e:
         traceback_info = traceback.format_exc()
-        logger.error(e)
-        logger.error(traceback_info)
+        if str(e).find('chat not found'):
+            logger.error(e)
+        else:
+            logger.error(traceback_info)
         return None
 
 
 def get_tg_username_by_id_noformat(user_id):
     if not user_id:
         return None
-    userinfo = bot.get_chat(user_id)
-    if userinfo.last_name:
-        ret_str = f'{userinfo.first_name} {userinfo.last_name}'
-    else:
-        ret_str = f'{userinfo.first_name}'
-    if ret_str:
-        return ret_str
-    else:
+    try:
+        userinfo = bot.get_chat(user_id)
+        if userinfo.last_name:
+            ret_str = f'{userinfo.first_name} {userinfo.last_name}'
+        else:
+            ret_str = f'{userinfo.first_name}'
+        if ret_str:
+            return ret_str
+        else:
+            return None
+    except Exception as e:
+        traceback_info = traceback.format_exc()
+        if str(e).find('chat not found'):
+            logger.error(e)
+        else:
+            logger.error(traceback_info)
         return None
 
 
