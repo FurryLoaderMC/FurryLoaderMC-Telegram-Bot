@@ -289,8 +289,8 @@ def at_mc(message_local):
             message_to_send = copy.deepcopy(message_template)
 
             if player_id:
-                message_to_send['sender']['minecraft_name'] = get_mc_username_by_id(player_id)
-                message_to_send['sender']['telegram_name'] = get_tg_username_by_id_noformat(player_id)
+                message_to_send['sender']['minecraft_name'] = get_mc_username_by_id(player_id) or 'UNBOUND'
+                message_to_send['sender']['telegram_name'] = get_tg_username_by_id_noformat(player_id) or 'UNBOUND'
                 message_to_send['sender']['telegram_id'] = player_id
                 message_to_send['message']['id'] = message_local.message_id
                 message_to_send['message']['content'].append({
@@ -308,6 +308,7 @@ def at_mc(message_local):
                         'content': ' '.join(message_local.text[4:].split(' ')[1:]),
                     })
                 sio.emit('chat', message_to_send, namespace='/message')
+                logger.info('websocket 发送消息 ' + json.dumps(message_to_send))
                 result_message = bot.reply_to(message_local, f'已发送')
                 # 五秒后删除消息
                 time.sleep(5)
@@ -323,15 +324,15 @@ def at_mc(message_local):
                      content_types=['text', 'photo', 'video', 'audio', 'voice', 'sticker', 'document'])
 def if_all(message_local):
     try:
-        # logger.info(message)
         logger.info(
             {'telegram 收到消息', message_local.content_type, message_local.text, message_local.from_user.username})
 
         # 复制message模板
         message_to_send = copy.deepcopy(message_template)
 
-        message_to_send['sender']['minecraft_name'] = get_mc_username_by_id(message_local.from_user.id)
-        message_to_send['sender']['telegram_name'] = get_tg_username_by_id_noformat(message_local.from_user.id)
+        message_to_send['sender']['minecraft_name'] = get_mc_username_by_id(message_local.from_user.id) or 'UNBOUND'
+        message_to_send['sender']['telegram_name'] = get_tg_username_by_id_noformat(
+            message_local.from_user.id) or 'UNBOUND'
         message_to_send['sender']['telegram_id'] = message_local.from_user.id
         message_to_send['message']['id'] = message_local.message_id
 
@@ -399,6 +400,7 @@ def if_all(message_local):
             message_to_send['message']['content'].extend(parse_message(message_local.text,
                                                                        message_local.entities))
             sio.emit('chat', message_to_send, namespace='/message')
+            logger.info('websocket 发送消息 ' + json.dumps(message_to_send))
 
         else:
             # if read_data('id').get(str(message.from_user.id)):
@@ -448,6 +450,7 @@ def if_all(message_local):
                 message_to_send['message']['content'].extend(parse_message(message_local.caption,
                                                                            message_local.caption_entities))
             sio.emit('chat', message_to_send, namespace='/message')
+            logger.info('websocket 发送消息 ' + json.dumps(message_to_send))
 
         if message_local.from_user.username:
             username_id_data = read_data('username_id')
@@ -455,7 +458,6 @@ def if_all(message_local):
             write_data('username_id', username_id_data)
     except Exception as e:
         traceback_info = traceback.format_exc()
-        logger.error(e)
         logger.error(traceback_info)
 
 
@@ -470,7 +472,6 @@ def tg_polling():
         bot.infinity_polling(logger_level=None)
     except Exception as e:
         traceback_info = traceback.format_exc()
-        logger.error(e)
         logger.error(traceback_info)
 
 
@@ -545,7 +546,7 @@ def get_tg_username_by_id(user_id):
             return None
     except Exception as e:
         traceback_info = traceback.format_exc()
-        if str(e).find('chat not found'):
+        if str(e).find('chat not found') != -1:
             logger.error(e)
         else:
             logger.error(traceback_info)
@@ -567,7 +568,7 @@ def get_tg_username_by_id_noformat(user_id):
             return None
     except Exception as e:
         traceback_info = traceback.format_exc()
-        if str(e).find('chat not found'):
+        if str(e).find('chat not found') != -1:
             logger.error(e)
         else:
             logger.error(traceback_info)
@@ -719,6 +720,9 @@ def on_message(data):
             xaero_waypoint_pattern = r'xaero-waypoint:(.*?):(.*?):(\S+):(\S+):(\S+):.*?:.*?:.*?:(\S+)'
             xaero_waypoint_match = re.search(xaero_waypoint_pattern, message_content['content'])
 
+            at_pattern = r'<chat=[^>]*:<IC\^@(.*?)>:>'
+            at_match = re.search(at_pattern, message_content['content'])
+
             if xaero_waypoint_match:
                 fullname = xaero_waypoint_match.group(1)
                 single = xaero_waypoint_match.group(2)
@@ -744,6 +748,10 @@ def on_message(data):
                 message_str += f'分享了一个来自 {world} 的名为 *{tg_escape(fullname)}*({tg_escape(single)}) 的路径点 `({x}, {y}, {z})`'
                 return_message += f'分享了一个来自 {world} 的名为 *{fullname}*({single}) 的路径点 `({x}, {y}, {z})`'
             else:
+                if at_match:
+                    message_content['content'] = re.sub(at_pattern, f'@{at_match.group(1)}',
+                                                        message_content['content'])
+
                 message_str += tg_escape(message_content['content'])
                 return_message += message_content['content']
         elif message_content['type'] == 'at':
@@ -817,6 +825,7 @@ def on_message(data):
             'content': return_message,
         }])
         sio.emit('chat', message_to_send, namespace='/message')
+        logger.info('websocket 发送消息 ' + json.dumps(message_to_send))
         logger.info({'return to server (reply)', reply_id, return_message})
     else:
         # print(group_id, message_str)
@@ -829,6 +838,7 @@ def on_message(data):
                 'content': return_message,
             })
             sio.emit('chat', message_to_send, namespace='/message')
+            logger.info('websocket 发送消息 ' + json.dumps(message_to_send))
             logger.info({'return to server (send)', message_str, return_message})
 
 
