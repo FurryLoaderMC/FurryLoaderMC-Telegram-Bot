@@ -352,6 +352,8 @@ def death_list(message_local):
 def death_list_daily(message_local):
     logger.info({'death_list_daily', str(message_local.from_user.username)})
     death_daily_data = read_data('death_daily')
+    if not death_daily_data.get('data'):
+        death_daily_data['data'] = {}
     death_daily_data_sorted = sorted(death_daily_data['data'].items(), key=lambda x: x[1], reverse=True)
     death_daily_str = '今日死亡榜\n'
     if len(death_daily_data_sorted) == 0:
