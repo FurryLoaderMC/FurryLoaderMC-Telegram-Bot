@@ -26,8 +26,9 @@ if not os.path.exists('data'):
     os.makedirs('data')
 
 create_file_if('data/id.json')
-# create_file_if('data/latest_player.json')
 create_file_if('data/username_id.json')
+create_file_if('data/death_all.json')
+create_file_if('data/death_daily.json')
 
 logger.add("logs/app_{time}.log", rotation="00:00", retention="10 days",
            format="[{level}] {time:MM-DD HH:mm:ss.SSS} ({module}:{line}) - {message}")
@@ -73,6 +74,8 @@ help_text = f'''
 `/status` - 获取服务器状态  
 `/performance` - 获取服务器性能信息
 `/list` - 获取服务器上的玩家列表  
+`/death_list` - 查看总死亡榜
+`/death_list_daily` - 查看今日死亡榜
 `/bind` - 绑定你的 MC 用户名  
 `/unbind` - 解绑你的 MC 用户名  
 `/get_me` - 获取你的信息
@@ -83,6 +86,8 @@ bot.set_my_commands([
     telebot.types.BotCommand('/status', '服务器状态'),
     telebot.types.BotCommand('/performance', '服务器性能信息'),
     telebot.types.BotCommand('/list', '玩家列表'),
+    telebot.types.BotCommand('/death_list', '总死亡榜'),
+    telebot.types.BotCommand('/death_list_daily', '今日死亡榜'),
     telebot.types.BotCommand('/bind', '绑定 MC 用户名（手动输入 /bind 用户名）'),
     telebot.types.BotCommand('/unbind', '解绑 MC 用户名'),
     telebot.types.BotCommand('/get_me', '获取用户信息'),
@@ -318,6 +323,50 @@ def at_mc(message_local):
             bot.reply_to(message_local, '你需要先绑定 MC 用户名')
     else:
         bot.reply_to(message_local, '请在 `/at` 命令后面加上你要 @ 的 MC 用户名')
+
+
+# 死亡榜总榜
+@bot.message_handler(commands=['death_list'])
+def death_list(message_local):
+    logger.info({'death_list', str(message_local.from_user.username)})
+    death_all_data = read_data('death_all')
+    death_all_data_sorted = sorted(death_all_data.items(), key=lambda x: x[1], reverse=True)
+    death_all_str = '总死亡榜\n'
+    if len(death_all_data_sorted) == 0:
+        death_all_str += '暂无数据'
+    else:
+        # 如果超过10个人就只显示前10个
+        if len(death_all_data_sorted) > 10:
+            death_all_data_sorted = death_all_data_sorted[:10]
+        for i, death_all_data_sorted_item in enumerate(death_all_data_sorted, start=1):
+            player_id = get_id_by_mc_username(death_all_data_sorted_item[0])
+            if player_id:
+                death_all_str += f'{i}. `{death_all_data_sorted_item[0]}` ({get_tg_username_by_id(player_id)})：*{death_all_data_sorted_item[1]}*次\n'
+            else:
+                death_all_str += f'`{i}. {death_all_data_sorted_item[0]}`：*{death_all_data_sorted_item[1]}*次\n'
+    bot.reply_to(message_local, death_all_str, disable_web_page_preview=True)
+
+
+# 死亡榜日榜
+@bot.message_handler(commands=['death_list_daily'])
+def death_list_daily(message_local):
+    logger.info({'death_list_daily', str(message_local.from_user.username)})
+    death_daily_data = read_data('death_daily')
+    death_daily_data_sorted = sorted(death_daily_data['data'].items(), key=lambda x: x[1], reverse=True)
+    death_daily_str = '今日死亡榜\n'
+    if len(death_daily_data_sorted) == 0:
+        death_daily_str += '暂无数据'
+    else:
+        # 如果超过10个人就只显示前10个
+        if len(death_daily_data_sorted) > 10:
+            death_daily_data_sorted = death_daily_data_sorted[:10]
+        for i, death_daily_data_sorted_item in enumerate(death_daily_data_sorted, start=1):
+            player_id = get_id_by_mc_username(death_daily_data_sorted_item[0])
+            if player_id:
+                death_daily_str += f'{i}. `{death_daily_data_sorted_item[0]}` ({get_tg_username_by_id(player_id)})：*{death_daily_data_sorted_item[1]}*次\n'
+            else:
+                death_daily_str += f'`{i}. {death_daily_data_sorted_item[0]}`：*{death_daily_data_sorted_item[1]}*次\n'
+    bot.reply_to(message_local, death_daily_str, disable_web_page_preview=True)
 
 
 @bot.message_handler(func=lambda message: True,
@@ -690,6 +739,30 @@ def on_message(data):
         if death_cause:
             death_str = death_str.replace('%3$s', f' `{death_cause}` ')
     send_message(death_str)
+
+    # 死亡榜
+    death_all_data = read_data('death_all')
+    death_daily_data = read_data('death_daily')
+
+    if death_person in death_all_data.keys():
+        death_all_data[death_person] += 1
+    else:
+        death_all_data[death_person] = 1
+
+    # 判断是否为新的一天
+    if not death_daily_data.get('date') or datetime.now().strftime('%Y-%m-%d') != death_daily_data['date']:
+        death_daily_data = {
+            'date': datetime.now().strftime('%Y-%m-%d'),
+            'data': {}
+        }
+
+    if death_person in death_daily_data['data'].keys():
+        death_daily_data['data'][death_person] += 1
+    else:
+        death_daily_data['data'][death_person] = 1
+
+    write_data('death_all', death_all_data)
+    write_data('death_daily', death_daily_data)
 
 
 @sio.on('chat', namespace='/message')
