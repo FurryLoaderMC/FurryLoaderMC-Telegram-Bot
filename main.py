@@ -359,15 +359,18 @@ def death_list_daily(message_local):
     if len(death_daily_data_sorted) == 0:
         death_daily_str += '暂无数据'
     else:
-        # 如果超过10个人就只显示前10个
-        if len(death_daily_data_sorted) > 10:
-            death_daily_data_sorted = death_daily_data_sorted[:10]
-        for i, death_daily_data_sorted_item in enumerate(death_daily_data_sorted, start=1):
-            player_id = get_id_by_mc_username(death_daily_data_sorted_item[0])
-            if player_id:
-                death_daily_str += f'{i}. `{death_daily_data_sorted_item[0]}` ({get_tg_username_by_id(player_id)})：*{death_daily_data_sorted_item[1]}*次\n'
-            else:
-                death_daily_str += f'`{i}. {death_daily_data_sorted_item[0]}`：*{death_daily_data_sorted_item[1]}*次\n'
+        if death_daily_data['date'] != datetime.now().strftime('%Y-%m-%d'):
+            death_daily_str += '暂无数据'
+        else:
+            # 如果超过10个人就只显示前10个
+            if len(death_daily_data_sorted) > 10:
+                death_daily_data_sorted = death_daily_data_sorted[:10]
+            for i, death_daily_data_sorted_item in enumerate(death_daily_data_sorted, start=1):
+                player_id = get_id_by_mc_username(death_daily_data_sorted_item[0])
+                if player_id:
+                    death_daily_str += f'{i}. `{death_daily_data_sorted_item[0]}` ({get_tg_username_by_id(player_id)})：*{death_daily_data_sorted_item[1]}*次\n'
+                else:
+                    death_daily_str += f'`{i}. {death_daily_data_sorted_item[0]}`：*{death_daily_data_sorted_item[1]}*次\n'
     bot.reply_to(message_local, death_daily_str, disable_web_page_preview=True)
 
 
