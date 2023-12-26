@@ -109,8 +109,11 @@ def empty_callback(*args):
 @bot.message_handler(commands=['list'])
 def send_player_list(message_local):
     logger.info({'list', str(message_local.from_user.username)})
-
-    sio.emit('players', namespace='/status', callback=empty_callback)
+    if sio.connected:
+        sio.emit('players', namespace='/status', callback=empty_callback)
+    else:
+        bot.reply_to(message_local, 'socket 未连接')
+        ws_reconnect()
 
 
 @bot.message_handler(commands=['status'])
@@ -128,16 +131,20 @@ def send_server_status(message_local):
         bot.reply_to(message_local, status + '服务器离线')
 
 
-# @bot.message_handler(commands=['getID'])
-# def send_welcome(message):
-#     bot.reply_to(message, message.chat.id)
+@bot.message_handler(commands=['getID'])
+def send_welcome(message_local):
+    bot.reply_to(message_local, message_local.chat.id)
 
 
 @bot.message_handler(commands=['performance'])
 def send_performance(message_local):
     logger.info({'performance', str(message_local.from_user.username)})
 
-    sio.emit('performance', namespace='/status', callback=empty_callback)
+    if sio.connected:
+        sio.emit('performance', namespace='/status', callback=empty_callback)
+    else:
+        bot.reply_to(message_local, 'socket 未连接')
+        ws_reconnect()
 
 
 @bot.message_handler(commands=['bind'])
@@ -277,6 +284,10 @@ def parse_message(text, entities):
 # 在tg里@mc用户名并且发送到ws
 @bot.message_handler(commands=['at'])
 def at_mc(message_local):
+    if not sio.connected:
+        bot.reply_to(message_local, 'socket 未连接')
+        ws_reconnect()
+        return
     logger.info({'at', str(message_local.from_user.username)})
     if message_local.text[4:] != '':
         # 判断是否有@机器人用户名
@@ -377,6 +388,9 @@ def death_list_daily(message_local):
 @bot.message_handler(func=lambda message: True,
                      content_types=['text', 'photo', 'video', 'audio', 'voice', 'sticker', 'document'])
 def if_all(message_local):
+    if not sio.connected:
+        ws_reconnect()
+        return
     try:
         logger.info(
             {'telegram 收到消息', message_local.content_type, message_local.text, message_local.from_user.username})
@@ -531,6 +545,8 @@ def tg_polling():
 
 tr_tg_polling = threading.Thread(target=tg_polling)
 tr_tg_polling.start()
+
+bot.send_message(config['admin_id'], '机器人，启动！')
 
 
 class CustomJSONEncoder(json.JSONEncoder):
@@ -989,35 +1005,76 @@ def catch_all(event, data):
     logger.info({'message 收到更多事件', event, data})
 
 
+connecting = False
+
+
 @sio.event(namespace='/status')
 def connect():
+    global tried, connecting
+    tried = False
+    connecting = False
     logger.info("status 已连接")
+    bot.send_message(config['admin_id'], 'status 已连接')
 
 
 @sio.event(namespace='/message')
 def connect():
+    global tried, connecting
+    tried = False
+    connecting = False
     logger.info("message 已连接")
+    bot.send_message(config['admin_id'], 'message 已连接')
 
 
 @sio.event(namespace='/status')
 def connect_error(data):
+    global connecting
+    connecting = False
     logger.error({'status 连接出错', data})
+    bot.send_message(config['admin_id'], 'status 连接出错\n```\n' + str(data) + '\n```')
 
 
 @sio.event(namespace='/message')
 def connect_error(data):
+    global connecting
+    connecting = False
     logger.error({'message 连接出错', data})
+    bot.send_message(config['admin_id'], 'message 连接出错\n```\n' + str(data) + '\n```')
 
 
 @sio.event(namespace='/status')
 def disconnect():
     logger.error("status 断开连接")
+    bot.send_message(config['admin_id'], 'status 断开连接')
 
 
 @sio.event(namespace='/message')
 def disconnect():
     logger.error("message 断开连接")
+    bot.send_message(config['admin_id'], 'message 断开连接')
 
 
-ws_url = config['websocket_url']
-sio.connect(ws_url, namespaces=['/status', '/message'])
+def ws_connect():
+    global connecting
+    if connecting:
+        return
+    logger.info('连接 websocket')
+    ws_url = config['websocket_url']
+    sio.connect(ws_url, namespaces=['/status', '/message'])
+
+
+tried = False
+
+
+def ws_reconnect():
+    global tried
+    if not tried:
+        tried = True
+        sio.disconnect()
+        time.sleep(5)
+        ws_connect()
+    else:
+        bot.send_message(config['admin_id'], 'socket 重连失败')
+
+
+ws_connect()

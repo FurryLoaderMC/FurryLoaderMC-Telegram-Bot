@@ -16,6 +16,7 @@ FurryLoaderMC 服务器专用 Telegram 机器人
   "server_port": 11451, //服务器端口（用于机器人获取状态）
   "server_ip_export": "服务器IP（给玩家看的）",
   "server_name": "服务器名称",
-  "websocket_url": "WebSocket地址"
+  "websocket_url": "WebSocket地址",
+  "admin_id": "0" //管理员ID（私聊发送机器人 /getID 获取）
 }
 ```
