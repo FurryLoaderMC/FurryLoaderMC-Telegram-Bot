@@ -17,6 +17,11 @@ FurryLoaderMC 服务器专用 Telegram 机器人
   "server_ip_export": "服务器IP（给玩家看的）",
   "server_name": "服务器名称",
   "websocket_url": "WebSocket地址",
-  "admin_id": "0" //管理员ID（私聊发送机器人 /getID 获取）
+  "admin_id": "0", //管理员ID（私聊发送机器人 /getID 获取）
+  "uptime": { // bot运行状态推送（Uptime Kuma）
+    "enable": true, //是否启用
+    "interval": 120, //间隔（秒）
+    "url": "https://example.com/api/push/xxxxxxxxxx?status=up&msg=OK" // Push方式的推送地址
+  }
 }
 ```

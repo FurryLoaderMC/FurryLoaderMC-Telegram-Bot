@@ -9,6 +9,7 @@ from datetime import datetime
 from enum import Enum
 
 import minestat
+import requests
 import socketio
 import telebot
 from loguru import logger
@@ -1078,3 +1079,13 @@ def ws_reconnect():
 
 
 ws_connect()
+
+uptime = config['uptime']
+if uptime:
+    if uptime['enable']:
+        interval = uptime['interval']
+        url = uptime['url']
+        logger.info(f'启用 uptime，每隔 {interval} 秒请求一次 {url}')
+        while True:
+            requests.get(url)
+            time.sleep(interval)
