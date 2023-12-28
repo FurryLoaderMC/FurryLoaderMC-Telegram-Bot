@@ -2,6 +2,8 @@
 
 FurryLoaderMC 服务器专用 Telegram 机器人
 
+机器人运行状态：[![Status](https://status.mukapp.top/api/badge/10/status)](https://status.mukapp.top/status)
+
 ## 配置文件示例 `config.json`：
 （删掉注释）
 ```json
